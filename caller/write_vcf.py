@@ -1,8 +1,5 @@
-import os
 import pysam
 from data_structures import SVType, SVInfo
-
-VERSION = 0
 
 
 def generate_VCF_header(file, contig_info):
@@ -57,80 +54,72 @@ def write_sv_lines(vcf_file, sv_calls: dict[str, dict[str, list[SVInfo]]]):
 			calls.sort(key=lambda x: int(x.first.pos))
 
 			for call in calls:
-
-				if call.first.pos == 14779798 or call.first.pos == 27330101:
-					print(call)
-					print(first_chrom, second_chrom)
-
-				# if call.first.cov_before + call.second.cov_after < 2 or 2 * call.support / (call.first.cov_before + call.second.cov_after) < 0.2:
-				
 				if call.first.cov_before + call.second.cov_after < 2:
 					continue
-				#if SVType.INS in call.structural_variants or SVType.DUP in call.structural_variants:
 				cov_ratio = 2 * call.support / (call.first.cov_before + call.second.cov_after)
 				if cov_ratio < 0.25:
 					continue
-
-				is_bnd = SVType.BND in call.structural_variants
-				if SVType.INV in call.structural_variants:
-					if len(call.structural_variants) > 1:
-						call.structural_variants.remove(SVType.INV)
-					is_inv = True
-				else:
-					is_inv = False
-				sv = [sv.name for sv in call.structural_variants][0]
-
 				line = []
+
 				# CHROM  
 				#line.append(call.first.chrom)
 				line.append(first_chrom)
+
 				# POS  
 				line.append(str(call.first.pos))
+
 				# ID  
-				line.append(f"sv_caller.{sv}.{i}.{call.sv_pipeline}")
+				line.append(f"sv_caller.{call.sv_type.name}.{i}.{call.sv_pipeline}")
 				i += 1
+
 				# REF  
 				line.append("N")
+
 				# ALT
-				if SVType.INS in call.structural_variants:
+				if call.sv_type == SVType.INS:
 					line.append(call.sequence)
-				elif is_bnd:
-					if is_inv:
+				elif call.sv_type == SVType.BND:
+					if call.sv_type == SVType.INV:
 						line.append(f"[{second_chrom}:{call.second.pos}[N")
 					else:
 						line.append(f"N]{second_chrom}:{call.second.pos}]")
 				else:
-					line.append(f"<{sv}>")
+					line.append(f"<{call.sv_type.name}>")
+
 				# QUAL  
 				line.append("60")
+
 				# FILTER
 				line.append("PASS")
+
 				# INFO  
 				info = []
-				info.append("SVTYPE=" + ":".join((var.name for var in call.structural_variants)))
-				if SVType.DEL in call.structural_variants:
-					# The length will be negative if the SV is a deletion
+				info.append(f"SVTYPE={call.sv_type.name}")
+				if call.sv_type == SVType.DEL:
+					# The length should be negative if the SV is a deletion
 					info.append(f"SVLEN={call.first.pos - call.second.pos - 1}")
-				elif SVType.INS in call.structural_variants:
+				elif call.sv_type == SVType.INS:
 					info.append(f"SVLEN={len(call.sequence)}")
-				elif is_bnd:
+				elif call.sv_type == SVType.BND:
 					pass
-				elif is_inv or SVType.DUP in call.structural_variants:
+				elif call.sv_type == SVType.INV or call.sv_type == SVType.DUP:
 					info.append(f"SVLEN={call.second.pos - call.first.pos}")
-				if is_bnd:
+				if call.sv_type == SVType.BND:
 					info.append(f"END={call.first.pos}")
 				else:
 					info.append(f"END={call.second.pos}")
 				info.append(f"SUPPORT={call.support}")
 				info.append(f"COVERAGE={call.first.cov_before},{call.first.cov_after},{call.second.cov_before},{call.second.cov_after}")
-				if is_bnd:
-					info.append(f"CHR2={second_chrom}")
+				if call.sv_type == SVType.BND:
+					info.append(f"CHR2='{second_chrom}'")
 				info.append(f"PHASE={call.phase}")
 				
 				info.append(f"VAF={cov_ratio:.3f}")
 				line.append(";".join(info))
+
 				# FORMAT
 				line.append("GT:GQ:PL:AD")
+
 				# SAMPLE
 				sample = []
 				#if call.phase_ratio < 0.75:
@@ -142,6 +131,7 @@ def write_sv_lines(vcf_file, sv_calls: dict[str, dict[str, list[SVInfo]]]):
 				sample.append(str(round(call.phase_ratio, 2)))
 				line.append(":".join(sample))
 
+				# Combine all lines
 				lines.append("\t".join(line))
 
 	vcf_file.write("\n".join(lines))

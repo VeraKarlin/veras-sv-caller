@@ -37,9 +37,10 @@ class BPInfo:
 class SVInfo:
     first: BPInfo
     second: BPInfo
-    structural_variants: set[SVType] = field(default_factory=set)
+    sv_type: SVType
     sequence: str = ""
     support: int = 1
     phase: int = 0
     phase_ratio: float = 1.0
     sv_pipeline: str = ""
+    is_inverted: bool = False

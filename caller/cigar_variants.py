@@ -46,7 +46,7 @@ def _add_group(sv_calls: dict[str, dict[str, list]], chrom: str, group: list, sv
     sv_info = SVInfo(
         first=first_bp,
         second=second_bp,
-        structural_variants={sv_type}, 
+        sv_type=sv_type, 
         sequence=seqs[len(seqs)//2], 
         support=len(group),
         phase=phase,

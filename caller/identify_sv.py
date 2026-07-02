@@ -26,7 +26,7 @@ def get_cluster_info(samfile: pysam.Samfile, cluster_dict: dict[str, dict[str, d
                 same_strand = 0
                 all_pos_1 = []
                 all_pos_2 = []
-                # The following vairables ranges from -1 to 1, with 0 representing a total mix
+                # The following vairables range from -1 to 1, with 0 representing a total mix
                 strand_1 = 0
                 strand_2 = 0
                 tot_direction_1 = 0
@@ -78,90 +78,46 @@ def get_cluster_info(samfile: pysam.Samfile, cluster_dict: dict[str, dict[str, d
 
                 phase = phase_list.index(max(phase_list))
                 phase_ratio = max(phase_list) / sum(phase_list)
+                is_inverted = same_strand_ratio <= 0.25
+                sv_type = None
 
-                sv_set = set()
-                if same_strand_ratio <= 0.25:
-                    sv_set.add(SVType.INV)
-                    # Check if inversion with deletions:
-                    if len(sv_calls[first_chrom][second_chrom]) > 0:
-                        last_call = sv_calls[first_chrom][second_chrom][-1] 
-                        if SVType.INV in last_call.structural_variants:
-                            bp_1 = last_call.first
-                            bp_2 = first_bp
-                            bp_3 = last_call.second
-                            bp_4 = second_bp
-                            # If the inversions are overlapping:
-                            if bp_2.pos < bp_3.pos:
-                                # Remove the previous inversion call
-                                sv_calls[first_chrom][second_chrom].pop()
-                                if abs(bp_2.pos - bp_1.pos) > 50:
-                                    sv_calls[first_chrom][second_chrom].append(SVInfo(
-                                        first=bp_1, 
-                                        second=bp_2, 
-                                        structural_variants={SVType.DEL}, 
-                                        sequence="", 
-                                        support=len(pairs), 
-                                        phase=phase, 
-                                        phase_ratio=phase_ratio, 
-                                        sv_pipeline="soft_")
-                                    )
-                                sv_calls[first_chrom][second_chrom].append(SVInfo(
-                                    first=bp_2, 
-                                    second=bp_3, 
-                                    structural_variants={SVType.INV}, 
-                                    sequence="", 
-                                    support=len(pairs), 
-                                    phase=phase, 
-                                    phase_ratio=phase_ratio, 
-                                    sv_pipeline="soft_")
-                                )
-                                if abs(bp_4.pos - bp_3.pos) > 50:
-                                    sv_calls[first_chrom][second_chrom].append(SVInfo(
-                                        first=bp_3, 
-                                        second=bp_4, 
-                                        structural_variants={SVType.DEL}, 
-                                        sequence="", 
-                                        support=len(pairs), 
-                                        phase=phase, 
-                                        phase_ratio=phase_ratio, 
-                                        sv_pipeline="soft_")
-                                    )
-                                continue
-                
                 if first_chrom != second_chrom:
-                    sv_set.add(SVType.BND)
-
+                    sv_type = SVType.BND
                     sv_info = SVInfo(
                         first=second_bp, 
                         second=first_bp, 
-                        structural_variants=sv_set, 
+                        sv_type=sv_type, 
                         sequence="<INS>", 
                         support=len(pairs), 
                         phase=phase, 
                         phase_ratio=phase_ratio,
-                        sv_pipeline="soft_comp_bnd_"
+                        sv_pipeline="soft_comp_bnd_",
+                        is_inverted=is_inverted
                     )
                     sv_calls.setdefault(second_chrom, {}).setdefault(first_chrom, []).append(sv_info)
-
+                elif is_inverted:
+                    sv_type = SVType.INV
                 elif direction_1 >= 0.8 and direction_2 <= -0.8:
                     if abs(second_bp.pos - first_bp.pos) >= 50:
-                        sv_set.add(SVType.DUP)
+                        sv_type = SVType.DUP
                     else:
-                        sv_set.add(SVType.INS)
+                        sv_type = SVType.INS
                 elif direction_1 <= -0.8 and direction_2 >= 0.8:
-                    sv_set.add(SVType.DEL)
+                    sv_type = SVType.DEL
                 elif same_strand_ratio > 0.25:
-                    sv_set.add(SVType.INS)
+                    sv_type = SVType.INS
                 # TODO: Add sequence if insertion
+
                 sv_info = SVInfo(
                     first=first_bp, 
                     second=second_bp, 
-                    structural_variants=sv_set, 
+                    sv_type=sv_type, 
                     sequence="<INS>", 
                     support=len(pairs), 
                     phase=phase, 
                     phase_ratio=phase_ratio,
-                    sv_pipeline="soft_"
+                    sv_pipeline="soft_",
+                    is_inverted=is_inverted
                     )
                 sv_calls[first_chrom][second_chrom].append(sv_info)
     return sv_calls
