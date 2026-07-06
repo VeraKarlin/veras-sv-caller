@@ -64,8 +64,8 @@ def parse_cigar(cigar_string: str, is_reverse: bool) -> tuple[int, int, int, int
     return (ref_pos, query_pos, query_start, query_end, INS_list, DEL_list)
 
 
-def get_alignments_from_samfile(samfile: pysam.AlignmentFile) -> dict:
-    '''Create Read, Alignment and Breakpoint objects from the contents of the file.'''
+def get_alignments_from_samfile(samfile: pysam.AlignmentFile, max_nm: float) -> dict:
+    '''Extract the reads, cigar insertions/deletions and coverage from the contents of the samfile.'''
     
     cigar_time = 0
     coverage_time = 0
@@ -80,6 +80,7 @@ def get_alignments_from_samfile(samfile: pysam.AlignmentFile) -> dict:
         chrom = query.reference_name
         if not chrom or not query.cigarstring or not query.query_name or query.mapping_quality < 30:
             continue
+
         seq = query.query_sequence
         ref_len, query_len, query_start, query_end, INS_list, DEL_list = parse_cigar(cigar_string=query.cigarstring, is_reverse=query.is_reverse)
         cigar_time += time.time() - latest_time
@@ -87,10 +88,7 @@ def get_alignments_from_samfile(samfile: pysam.AlignmentFile) -> dict:
 
         ref_start = query.reference_start
         ref_end = query.reference_start + ref_len
-        if query.has_tag("HP"):
-            phase = query.get_tag("HP")
-        else:
-            phase = 0
+        phase = query.get_tag("HP") if query.has_tag("HP") else 0
 
         INS_list = [(ins[0] + ref_start, ins[1], seq[ins[0]:ins[0]+ins[1]], phase) for ins in INS_list]
         DEL_list = [(d[0] + ref_start, d[1], "", phase) for d in DEL_list]
@@ -99,14 +97,19 @@ def get_alignments_from_samfile(samfile: pysam.AlignmentFile) -> dict:
 
         # Increment the bases between the reference start and end
         coverage.setdefault(chrom, np.zeros((250000000)))[ref_start:ref_end+1] += 1
+        
         # Remove one from the places of deletions (that are larger than the threshold)
         for del_start, del_end, _, _ in DEL_list:
             coverage[chrom][del_start:del_end+1] -= 1
-
         coverage_time += time.time() - latest_time
         latest_time = time.time()
-        
+
+        # Filter out alignments without supplimentary alignments
         if not query.has_tag("SA"):
+            continue
+
+        # Filter out alignments with an edit distance ratio above a threshold
+        if query.has_tag("NM") and query.get_tag("NM") / query.reference_length > max_nm:
             continue
 
         # Mirror the start and endpoints of the alignment if on the reverse strand
@@ -141,4 +144,3 @@ def get_alignments_from_samfile(samfile: pysam.AlignmentFile) -> dict:
     summed_time = cigar_time + coverage_time + sorting_time + add_alignment_time
     print("cigar:", cigar_time, "cov:", coverage_time, "sort:", sorting_time, "add align:", add_alignment_time, "combined:", summed_time)
     return reads, all_INS, all_DEL, coverage
-

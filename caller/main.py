@@ -16,7 +16,8 @@ app = typer.Typer()
 @app.command()
 def main(
     bam: Annotated[Path, typer.Option(help="Path to input bam file.")],
-    output: Annotated[Path, typer.Option(help="Path to output vcf file.")] = None,
+    output: Annotated[str, typer.Option(help="Path to output vcf file.")] = None,
+    max_nm: Annotated[float, typer.Option(help="Maximum threshold for ratio between edit distance and alignment length.")] = 0.05,
     eps: Annotated[float, typer.Option(help="Epsilon for DBSCAN clustering.")] = 20,
     min_samples: Annotated[int, typer.Option(help="Minumum number of samples for DBSCAN clustering.")] = 3,
 ):  
@@ -30,7 +31,7 @@ def main(
     latest_time = time.time()
 
     ## Parse bam file ##
-    reads, INS_dict, DEL_dict, coverage_dict = bam_parser.get_alignments_from_samfile(samfile)
+    reads, INS_dict, DEL_dict, coverage_dict = bam_parser.get_alignments_from_samfile(samfile=samfile, max_nm=max_nm)
     print(f"Samfile parsed! ({(time.time() - latest_time)})")
     latest_time = time.time()
 
