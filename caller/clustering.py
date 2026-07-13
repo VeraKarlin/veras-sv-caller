@@ -1,6 +1,7 @@
-from data_structures import Alignment, BPInfo, SVInfo, SVType
-from sklearn.cluster import DBSCAN
 import numpy as np
+from sklearn.cluster import DBSCAN
+
+from data_structures import Alignment
 from dataclasses import replace
 
 
@@ -33,10 +34,7 @@ def _group_pairs_by_chrom(pairs: list[tuple[Alignment, Alignment]]) -> dict[str,
     return grouped_pairs
 
 
-def cluster_positions(reads: dict[str, list[Alignment]], eps:float=10, min_samples:int=2) -> dict[str, dict[str, dict[int, tuple[Alignment, Alignment]]]]:
-    cluster_time = 0
-    dict_time = 0
-
+def cluster_positions(reads: dict[str, list[Alignment]], eps:float, min_samples:int) -> dict[str, dict[str, dict[int, tuple[Alignment, Alignment]]]]:
     all_pairs = _pair_alignments(reads)
     flipped_pairs = _flip_alignments(all_pairs)
     grouped_pairs = _group_pairs_by_chrom(flipped_pairs)
@@ -57,6 +55,5 @@ def cluster_positions(reads: dict[str, list[Alignment]], eps:float=10, min_sampl
             clusters = {int(label): np.array(pairs)[labels == label].tolist() for label in unique_labels}
             grouped_clusters.setdefault(chrom_1, {})[chrom_2] = clusters
 
-    print(cluster_time, dict_time)
     return grouped_clusters
     

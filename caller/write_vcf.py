@@ -137,7 +137,7 @@ def write_sv_lines(vcf_file, sv_calls: dict[str, dict[str, list[SVInfo]]]):
 	vcf_file.write("\n".join(lines))
 
 
-def write_vcf_file(sample_id: str, samfile: pysam.Samfile, sv_calls: dict, output_path: str):
+def write_vcf_file(samfile: pysam.Samfile, sv_calls: dict, output_path: str):
 	chr_name_list = list()
 	contig_info = list()
 	ref_ = samfile.get_index_statistics()

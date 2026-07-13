@@ -1,6 +1,6 @@
-from data_structures import Alignment, SVInfo, BPInfo, SVType
 from statistics import median, mean
 import pysam
+from data_structures import Alignment, SVInfo, BPInfo, SVType
 
 
 def check_coverage(chrom: str, pos: int, cov_dict: dict) -> tuple[float, float]:
@@ -10,16 +10,15 @@ def check_coverage(chrom: str, pos: int, cov_dict: dict) -> tuple[float, float]:
     return (cov_before, cov_after)
 
 
-def get_cluster_info(samfile: pysam.Samfile, cluster_dict: dict[str, dict[str, dict[int, list[tuple[Alignment, Alignment]]]]], coverage_dict: dict
+def get_cluster_info(cluster_dict: dict[str, dict[str, dict[int, list[tuple[Alignment, Alignment]]]]], coverage_dict: dict, samfile: pysam.AlignmentFile
                      ) -> dict[str, dict[str, list[SVInfo]]]:
     sv_calls = {}
+    del_dict = {}
+    ins_dict = {}
     for first_chrom in cluster_dict.keys():
-        sv_calls[first_chrom] = {}
         for second_chrom in cluster_dict[first_chrom].keys():
             clusters = list(cluster_dict[first_chrom][second_chrom].items())
             clusters.sort(key=lambda p: mean((p[1][0][0].ref_end, p[1][0][1].ref_start)))
-
-            sv_calls[first_chrom][second_chrom] = []
             for label, pairs in clusters:
                 if label == -1:
                     continue
@@ -106,10 +105,23 @@ def get_cluster_info(samfile: pysam.Samfile, cluster_dict: dict[str, dict[str, d
                     sv_type = SVType.DEL
                 elif same_strand_ratio > 0.25:
                     sv_type = SVType.INS
-                # TODO: Add sequence if insertion
+                else:
+                    print(f"No SV type identifed for SV at {first_chrom}:{first_bp_pos}")
+                    continue
+
+                if sv_type == SVType.INS:
+                    for align_1, align_2 in pairs:
+                        ins_seq = align_1.seq[align_1.query_end:align_2.query_start]
+                        # Deal with "insertions" with a length of 0
+                        ins_dict.setdefault(first_chrom, []).append((align_1.ref_end, len(ins_seq), ins_seq, phase))
+                    continue
+                if sv_type == SVType.DEL:
+                    for align_1, align_2 in pairs:
+                        del_dict.setdefault(first_chrom, []).append((align_1.ref_end, align_2.ref_start - align_1.ref_end + 1, "", phase))
+                    continue
 
                 sv_info = SVInfo(
-                    first=first_bp, 
+                    first=first_bp,
                     second=second_bp, 
                     sv_type=sv_type, 
                     sequence="<INS>", 
@@ -119,5 +131,6 @@ def get_cluster_info(samfile: pysam.Samfile, cluster_dict: dict[str, dict[str, d
                     sv_pipeline="soft_",
                     is_inverted=is_inverted
                     )
-                sv_calls[first_chrom][second_chrom].append(sv_info)
-    return sv_calls
+                sv_calls.setdefault(first_chrom, {}).setdefault(second_chrom, []).append(sv_info)
+
+    return sv_calls, ins_dict, del_dict

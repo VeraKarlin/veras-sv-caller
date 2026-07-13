@@ -1,9 +1,10 @@
-import pysam
 import os
 import re
-from data_structures import Alignment
 import time
+import pysam
 import numpy as np
+
+from data_structures import Alignment
 
 
 def read_file(file_path: str) -> pysam.AlignmentFile:
@@ -128,7 +129,8 @@ def get_alignments_from_samfile(samfile: pysam.AlignmentFile, max_nm: float) -> 
             strand= "-" if query.is_reverse else "+",
             cigar= query.cigarstring,
             mapq= query.mapping_quality,
-            phase= phase
+            phase= phase,
+            seq= query.query_sequence
         )
 
         reads.setdefault(query.query_name, []).append(alignment)

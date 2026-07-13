@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 @dataclass
@@ -13,7 +13,8 @@ class Alignment:
     strand: str
     cigar: str
     mapq: float
-    phase: int = 0
+    phase: int
+    seq: str
 
 class SVType(Enum):
     INV = "inversion"
