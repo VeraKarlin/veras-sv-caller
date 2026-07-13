@@ -1,5 +1,5 @@
 import pysam
-from src.data_structures import SVType, SVInfo
+from data_structures import SVType, SVInfo
 
 
 def generate_VCF_header(file, contig_info):
@@ -76,7 +76,7 @@ def write_sv_lines(vcf_file, sv_calls: dict[str, dict[str, list[SVInfo]]]):
 				line.append("N")
 
 				# ALT
-				if call.sv_type == SVType.INS:
+				if call.sv_type == SVType.INS and len(call.sequence) > 0:
 					line.append(call.sequence)
 				elif call.sv_type == SVType.BND:
 					if call.sv_type == SVType.INV:

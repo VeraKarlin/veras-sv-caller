@@ -1,7 +1,7 @@
 import numpy as np
 import statistics
 from sklearn.cluster import DBSCAN
-from src.data_structures import Alignment, BPInfo, SVInfo, SVType
+from data_structures import Alignment, BPInfo, SVInfo, SVType
 
 
 def _add_group(sv_calls: dict[str, dict[str, list]], chrom: str, group: list, sv_type: SVType, coverage_dict: dict):
@@ -65,7 +65,6 @@ def cluster_cigar_variants(cigar_var_dict: dict[str, list[tuple[int, int]]], spl
     for chrom in combined_var_dict.keys():
         variants = [variant[:2] for variant in combined_var_dict[chrom]]
         if not variants:
-            print("No variants:", chrom)
             continue
         X = np.array(variants)
         dbscan = DBSCAN(eps=eps, min_samples=min_samples)

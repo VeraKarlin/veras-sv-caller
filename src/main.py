@@ -9,7 +9,7 @@ import clustering
 import identify_sv
 import cigar_variants
 import write_vcf
-from src.data_structures import SVType
+from data_structures import SVType
 
 
 app = typer.Typer()
@@ -49,9 +49,9 @@ def main(
     print(f"Deletions done!")
 
     ## Write VCF file ##
-    sample_id = ".".join(os.path.basename(bam).split(".")[:-1])
+    input_name = ".".join(os.path.basename(bam).split(".")[:-1])
     if output == None:
-        output = f"{sample_id}.veras_sv_caller.vcf"
+        output = f"{input_name}.veras_sv_caller.vcf"
     write_vcf.write_vcf_file(samfile=samfile, sv_calls=sv_calls, output_path=output)
     samfile.close() 
     print(f"VCF file written!\n")

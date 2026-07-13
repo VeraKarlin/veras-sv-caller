@@ -1,6 +1,6 @@
 from statistics import median, mean
 import pysam
-from src.data_structures import Alignment, SVInfo, BPInfo, SVType
+from data_structures import Alignment, SVInfo, BPInfo, SVType
 
 
 def check_coverage(chrom: str, pos: int, cov_dict: dict) -> tuple[float, float]:
