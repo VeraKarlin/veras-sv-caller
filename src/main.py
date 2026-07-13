@@ -9,7 +9,7 @@ import clustering
 import identify_sv
 import cigar_variants
 import write_vcf
-from data_structures import SVType
+from src.data_structures import SVType
 
 
 app = typer.Typer()

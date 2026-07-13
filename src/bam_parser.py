@@ -4,7 +4,7 @@ import time
 import pysam
 import numpy as np
 
-from data_structures import Alignment
+from src.data_structures import Alignment
 
 
 def read_file(file_path: str) -> pysam.AlignmentFile:

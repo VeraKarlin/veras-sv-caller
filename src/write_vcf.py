@@ -1,5 +1,5 @@
 import pysam
-from data_structures import SVType, SVInfo
+from src.data_structures import SVType, SVInfo
 
 
 def generate_VCF_header(file, contig_info):

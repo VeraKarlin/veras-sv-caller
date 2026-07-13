@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
 
-from data_structures import Alignment
+from src.data_structures import Alignment
 from dataclasses import replace
 
 

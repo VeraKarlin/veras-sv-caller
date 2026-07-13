@@ -1,7 +1,7 @@
 import numpy as np
 import statistics
 from sklearn.cluster import DBSCAN
-from data_structures import Alignment, BPInfo, SVInfo, SVType
+from src.data_structures import Alignment, BPInfo, SVInfo, SVType
 
 
 def _add_group(sv_calls: dict[str, dict[str, list]], chrom: str, group: list, sv_type: SVType, coverage_dict: dict):
