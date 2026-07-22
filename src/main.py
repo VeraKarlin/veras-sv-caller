@@ -21,40 +21,41 @@ def main(
     eps: Annotated[float, typer.Option(help="Epsilon for DBSCAN clustering.")] = 50,
     min_samples: Annotated[int, typer.Option(help="Minumum number of samples for DBSCAN clustering.")] = 3,
 ):  
+    print(f"\nLoading samfile from {os.path.basename(bam)}")
     try:
         samfile = pysam.AlignmentFile(str(bam), 'rb')
     except OSError as e:
         print(f"ERROR: {e}")
         raise typer.Exit(code=1)
-    print(f"\nSamfile loaded!")
-
+    
     ## Parse bam file ##
+    print(f"Parsing samfile.")
     reads, INS_dict, DEL_dict, coverage_dict = bam_parser.get_alignments_from_samfile(samfile=samfile, max_nm=max_nm)
-    print(f"Samfile parsed!")
-
+    
     ## Cluster split reads ##
+    print(f"Clustering alignments.")
     grouped_clusters = clustering.cluster_positions(reads, eps=eps, min_samples=min_samples)
-    print(f"Clusters clustered!")
     
     ## Identify SV from split reads ##
-    sv_calls, split_INS_dict, split_DEL_dict = identify_sv.get_cluster_info(cluster_dict=grouped_clusters, coverage_dict=coverage_dict, samfile=samfile)
-    print(f"SVs called!")
+    print(f"Calling SVs.")
+    sv_calls, split_INS_dict, split_DEL_dict = identify_sv.get_cluster_info(cluster_dict=grouped_clusters, coverage_dict=coverage_dict)
 
     ## Add SV calls from cigar evidence ##
+    print(f"Clustering insertions.")
     sv_calls = cigar_variants.cluster_cigar_variants(cigar_var_dict=INS_dict, split_var_dict=split_INS_dict, sv_calls=sv_calls, 
                                                      sv_type=SVType.INS, coverage_dict=coverage_dict, eps=eps, min_samples=min_samples)
-    print(f"Insertions done!")
+    print(f"Clustering deletions.")
     sv_calls = cigar_variants.cluster_cigar_variants(cigar_var_dict=DEL_dict, split_var_dict=split_DEL_dict, sv_calls=sv_calls, 
                                                      sv_type=SVType.DEL, coverage_dict=coverage_dict, eps=eps, min_samples=min_samples)
-    print(f"Deletions done!")
-
+    
     ## Write VCF file ##
+    print(f"Writing VCF file.")
     input_name = ".".join(os.path.basename(bam).split(".")[:-1])
     if output == None:
         output = f"{input_name}.veras_sv_caller.vcf"
     write_vcf.write_vcf_file(samfile=samfile, sv_calls=sv_calls, output_path=output)
     samfile.close() 
-    print(f"VCF file written!\n")
+    print(f"Output VCF written to {output}\n")
 
 
 if __name__ == "__main__":

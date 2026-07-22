@@ -6,19 +6,9 @@ import numpy as np
 from data_structures import Alignment
 
 
-def read_file(file_path: str) -> pysam.AlignmentFile:
-    '''Read the bam file of the input path as a samfile'''
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == ".bam":
-        samfile = pysam.AlignmentFile(file_path, 'rb')
-    else:
-        raise ValueError(f"Unsupported file format: {ext}. Only bam files are supported!")
-    return samfile
-
-
 _CIGAR_RE = re.compile(r'\d+[A-Za-z=]')
 
-def parse_cigar(cigar_string: str, is_reverse: bool) -> tuple[int, int, int, int, list[tuple[int, int]], list[tuple[int, int]]]:
+def _parse_cigar(cigar_string: str, is_reverse: bool) -> tuple[int, int, int, int, list[tuple[int, int]], list[tuple[int, int]]]:
     op_pairs = _CIGAR_RE.findall(cigar_string)
 
     ref_pos = 0
@@ -64,7 +54,8 @@ def parse_cigar(cigar_string: str, is_reverse: bool) -> tuple[int, int, int, int
     return (ref_pos, query_pos, query_start, query_end, INS_list, DEL_list)
 
 
-def get_alignments_from_samfile(samfile: pysam.AlignmentFile, max_nm: float) -> tuple[dict, dict, dict, dict]:
+def get_alignments_from_samfile(samfile: pysam.AlignmentFile, max_nm: float
+    ) -> tuple[dict[str, Alignment], dict[str, list[int, int, str, int]], dict[str, list[int, int, str, int]], dict[str, np.ndarray]]:
     '''Extract the reads, cigar insertions/deletions and coverage from the contents of the samfile.'''
     reads = {}
     all_INS = {}
@@ -77,7 +68,7 @@ def get_alignments_from_samfile(samfile: pysam.AlignmentFile, max_nm: float) -> 
             continue
 
         seq = query.query_sequence
-        ref_len, query_len, query_start, query_end, INS_list, DEL_list = parse_cigar(cigar_string=query.cigarstring, is_reverse=query.is_reverse)
+        ref_len, query_len, query_start, query_end, INS_list, DEL_list = _parse_cigar(cigar_string=query.cigarstring, is_reverse=query.is_reverse)
 
         ref_start = query.reference_start
         ref_end = query.reference_start + ref_len

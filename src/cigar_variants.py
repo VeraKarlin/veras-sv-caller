@@ -40,22 +40,12 @@ def _add_group(sv_calls: dict[str, dict[str, list]], chrom: str, group: list, sv
         phase_ratio=phase_ratio,
         sv_pipeline="cigar"
     )
-    if type(sv_calls) != dict:
-        print("sv_calls isn't a dict!")
-        print(type(sv_calls))
-        print(sv_calls)
-        return
-    elif chrom in sv_calls.keys() and type(sv_calls[chrom]) != dict:
-        print("sv_calls[chrom] isn't a dict!")
-        print("chrom:", chrom)
-        print(type(sv_calls[chrom]))
-        print(sv_calls[chrom])
-        return
     sv_calls.setdefault(chrom, {}).setdefault(chrom, []).append(sv_info)
 
 
 def cluster_cigar_variants(cigar_var_dict: dict[str, list[tuple[int, int]]], split_var_dict: dict[str, list[tuple[int, int]]], 
-                           sv_calls: dict, sv_type: SVType, coverage_dict: dict, eps: float, min_samples: int):
+                           sv_calls: dict[str, dict[str, SVInfo]], sv_type: SVType, coverage_dict: dict, eps: float, min_samples: int) -> dict[str, dict[str, SVInfo]]:
+    '''Cluster the SVs which have been determined from the cigar strings with the SVs of that type that have been called from split reads.'''
     # Merge dictionaries:
     combined_var_dict = cigar_var_dict.copy()
     for key, val in split_var_dict.items():

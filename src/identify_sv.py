@@ -3,15 +3,16 @@ import pysam
 from data_structures import Alignment, SVInfo, BPInfo, SVType
 
 
-def check_coverage(chrom: str, pos: int, cov_dict: dict) -> tuple[float, float]:
+def _check_coverage(chrom: str, pos: int, cov_dict: dict) -> tuple[float, float]:
     window = 50
     cov_before = median(cov_dict[chrom][pos-window:pos]) if cov_dict[chrom][pos-window:pos].any() else 0
     cov_after = median(cov_dict[chrom][pos:pos+window]) if cov_dict[chrom][pos:pos+window].any() else 0
     return (cov_before, cov_after)
 
 
-def get_cluster_info(cluster_dict: dict[str, dict[str, dict[int, list[tuple[Alignment, Alignment]]]]], coverage_dict: dict, samfile: pysam.AlignmentFile
+def get_cluster_info(cluster_dict: dict[str, dict[str, dict[int, list[tuple[Alignment, Alignment]]]]], coverage_dict: dict,
                      ) -> dict[str, dict[str, list[SVInfo]]]:
+    '''Determine SV type and properties of each cluster. Insertions and deletions are stored separately from the other SV calls.'''
     sv_calls = {}
     del_dict = {}
     ins_dict = {}
@@ -25,12 +26,12 @@ def get_cluster_info(cluster_dict: dict[str, dict[str, dict[int, list[tuple[Alig
                 same_strand = 0
                 all_pos_1 = []
                 all_pos_2 = []
+                phase_list = [0, 0, 0]
                 # The following vairables range from -1 to 1, with 0 representing a total mix
                 strand_1 = 0
                 strand_2 = 0
                 tot_direction_1 = 0
                 tot_direction_2 = 0
-                phase_list = [0, 0, 0]
                 
                 for align_1, align_2 in pairs:
                     all_pos_1.append(align_1.ref_end)
@@ -54,7 +55,7 @@ def get_cluster_info(cluster_dict: dict[str, dict[str, dict[int, list[tuple[Alig
                 same_strand_ratio = same_strand / n
 
                 first_bp_pos = int(median(all_pos_1))
-                first_bp_cov = check_coverage(first_chrom, first_bp_pos, coverage_dict)
+                first_bp_cov = _check_coverage(first_chrom, first_bp_pos, coverage_dict)
                 first_bp = BPInfo(
                     chrom=first_chrom,
                     pos=first_bp_pos,
@@ -65,7 +66,7 @@ def get_cluster_info(cluster_dict: dict[str, dict[str, dict[int, list[tuple[Alig
                 )
 
                 second_bp_pos = int(median(all_pos_2))
-                second_bp_cov = check_coverage(second_chrom, second_bp_pos, coverage_dict)
+                second_bp_cov = _check_coverage(second_chrom, second_bp_pos, coverage_dict)
                 second_bp = BPInfo(
                     chrom=second_chrom,
                     pos=second_bp_pos,
